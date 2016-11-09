@@ -27,7 +27,7 @@
  
  ----------------------------------------------------------------
  
- Synth Samples SDL2 C - 2 produce notes.
+ Synth Samples SDL2 C - 3 envelope and smoothing.
  
  The focus of this tutorial is to present the basics of
  a realtime audio application in SDL2 and to produce notes.
@@ -41,9 +41,12 @@
     sample rate and table size to get correct phase for the oscillator.
     Use the keyboard to play different notes, plus and minus to change octave
  
+ 3. Use an amplitude envelope with attack, decay, sustain and release (ADSR). Also smooth
+    out the amp differences to avoid pops.
+ 
  dialect: C99
  dependencies: SDL2
- created by Harry Lundstrom on 5/10/15.
+ created by Harry Lundstrom on 2/11/16.
  these samples will be updated continually, check the repo for latest versions.
 */
 
@@ -69,6 +72,8 @@ static SDL_Renderer *renderer = NULL;
 static SDL_GLContext context;
 static int sample_rate = 44100;
 static int table_length = 1024;
+static bool key_pressed = false;
+static int last_note = 0;
 
 // voice
 static const double pi = 3.14159265358979323846;
@@ -76,7 +81,7 @@ static const double chromatic_ratio = 1.059463094359295264562;
 static double phase_double = 0;
 static int phase_int = 0;
 static int16_t *sine_wave_table;
-static int note = 30; // integer representing halfnotes.
+static int note = -1; // integer representing halfnotes.
 static int octave = 2;
 static int max_note = 131;
 static int min_note = 12;
@@ -100,8 +105,24 @@ static void handle_key_down(SDL_Keysym* keysym);
 static int get_deltatime(void);
 static void main_loop(void);
 static void handle_note_keys(SDL_Keysym* keysym);
-static char *note_to_char(int note);
+static void print_note(int note);
 
+// amplitude envelope
+static double update_envelope(void);
+static double get_envelope_amp_by_node(int base_node, double cursor);
+static double envelope_cursor = 0;
+static double envelope_speed_scale = 1; // set envelope speed 1-8
+static double envelope_data[4] = {1.0, 0.5, 0.5, 0.0}; // ADSR amp range 0.0-1.0
+static double envelope_increment_base = 0; // this will be set in init_data based on current samplingrate.
+
+// amplitude smoothing
+static double current_amp = 0;
+static double target_amp = 0;
+static double smoothing_amp_speed = 0.01;
+static double smoothing_enabled = true;
+
+static Sint32 last_key = 0;
+        
 int main(int argc, char* argv[]) {
     
     run();
@@ -229,14 +250,10 @@ static void write_samples(int16_t *s_byteStream, long begin, long end, long leng
         double d_table_length = table_length;
         double d_note = note;
         
-        /*
-            get correct phase increment for note depending on sample rate and table length.
-        */
+        // get correct phase increment for note depending on sample rate and table length.
         double phase_increment = (get_pitch(d_note) / d_sample_rate) * d_table_length;
         
-        /*
-            loop through the buffer and write samples.
-        */
+        // loop through the buffer and write samples.
         for (int i = 0; i < length; i+=2) {
             phase_double += phase_increment;
             phase_int = (int)phase_double;
@@ -249,7 +266,24 @@ static void write_samples(int16_t *s_byteStream, long begin, long end, long leng
             if(phase_int < table_length && phase_int > -1) {
                 if(s_byteStream != NULL) {
                     int16_t sample = sine_wave_table[phase_int];
-                    sample *= 0.3; // scale volume.
+                    target_amp = update_envelope();
+                    if(smoothing_enabled) {
+                        // move current amp towards target amp for a smoother transition.
+                        if(current_amp < target_amp) {
+                            current_amp += smoothing_amp_speed;
+                            if(current_amp > target_amp) {
+                                current_amp = target_amp;
+                            }
+                        } else if(current_amp > target_amp) {
+                            current_amp -= smoothing_amp_speed;
+                            if(current_amp < target_amp) {
+                                current_amp = target_amp;
+                            }
+                        }
+                    } else {
+                        current_amp = target_amp;
+                    }
+                    sample *= current_amp; // scale volume.
                     s_byteStream[i+begin] = sample; // left channel
                     s_byteStream[i+begin+1] = sample; // right channel
                 }
@@ -281,7 +315,7 @@ static void setup_sdl(void) {
         }
     }
     
-    window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_OPENGL);
+    window = SDL_CreateWindow("synth_samples_sdl2_3", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_OPENGL);
     
     if(window != NULL) {
         context = SDL_GL_CreateContext(window);
@@ -356,7 +390,7 @@ static int setup_sdl_audio(void) {
     }
     
     buffer_size = audio_spec.samples;
-    SDL_PauseAudioDevice(audio_device, 0);// unpause audio.
+    SDL_PauseAudioDevice(audio_device, 0); // unpause audio.
     return 0;
 }
 
@@ -388,6 +422,9 @@ static void init_data(void) {
     // allocate memory for sine table and build it.
     sine_wave_table = alloc_memory(sizeof(int16_t)*table_length, "PCM table");
     build_sine_table(sine_wave_table, table_length);
+    
+    // set envelope increment size based on samplerate.
+    envelope_increment_base = 1 / (double)(sample_rate/2);
 }
 
 static void t_log(char *message) {
@@ -399,11 +436,79 @@ static void t_log(char *message) {
 
 static void handle_key_up(SDL_Keysym* keysym) {
     
+    switch(keysym->sym) {
+        case SDLK_PLUS:
+            break;
+        case SDLK_MINUS:
+            break;
+        default:
+            // if the last notekey pressed is released
+            if(last_key == keysym->sym) {
+                key_pressed = false;
+                last_note = -1;
+            }
+            break;
+    }
 }
 
 static void handle_key_down(SDL_Keysym* keysym) {
+   
+    switch(keysym->sym) {
+        case SDLK_PLUS:
+            if(octave < 5) {
+                octave++;
+                printf("increased octave to:%d\n", octave);
+            }
+            break;
+        case SDLK_MINUS:
+            if(octave > 0) {
+                octave--;
+                printf("decreased octave to:%d\n", octave);
+            }
+            break;
+        default:
+            last_key = keysym->sym;
+            handle_note_keys(keysym);
+            key_pressed = true;
+            break;
+    }
+}
+
+static double get_envelope_amp_by_node(int base_node, double cursor) {
     
-    handle_note_keys(keysym);
+    // interpolate amp value for the current cursor position.
+    
+    double n1 = base_node;
+    double n2 = base_node + 1;
+    double relative_cursor_pos = (cursor - n1) / (n2 - n1);
+    double amp_diff = (envelope_data[base_node+1] - envelope_data[base_node]);
+    double amp = envelope_data[base_node]+(relative_cursor_pos*amp_diff);
+    return amp;
+}
+
+static double update_envelope(void) {
+    
+    // advance envelope cursor and return the target amplitude value.
+    
+    double amp = 0;
+    if(key_pressed && envelope_cursor < 3 && envelope_cursor > 2) {
+        // if a note key is longpressed and cursor is in range, stay for sustain.
+        amp = get_envelope_amp_by_node(2, envelope_cursor);
+    } else {
+        double speed_multiplier = pow(2, envelope_speed_scale);
+        double cursor_inc = envelope_increment_base * speed_multiplier;
+        envelope_cursor += cursor_inc;
+        if(envelope_cursor < 1) {
+            amp = get_envelope_amp_by_node(0, envelope_cursor);
+        } else if(envelope_cursor < 2) {
+            amp = get_envelope_amp_by_node(1, envelope_cursor);
+        } else if(envelope_cursor < 3) {
+            amp = get_envelope_amp_by_node(2, envelope_cursor);
+        } else {
+            amp = envelope_data[3];
+        }
+    }
+    return amp;
 }
 
 static void main_loop(void) {
@@ -419,36 +524,10 @@ static void main_loop(void) {
 
 static void handle_note_keys(SDL_Keysym* keysym) {
     
-    // change note or octave depending on which key is pressed.
+    // change note depending on which key is pressed.
     
     int new_note = note;
     switch(keysym->sym) {
-        case SDLK_PLUS:
-            octave++;
-            if(octave > 6) {
-                octave = 6;
-            } else {
-                note += 12;
-                if(note > max_note) {
-                    note = max_note;
-                }
-            }
-            printf("increased octave to:%d\n", octave);
-            return;
-            break;
-        case SDLK_MINUS:
-            octave--;
-            if(octave < 0) {
-                octave = 0;
-            } else {
-                note -= 12;
-                if(note < min_note) {
-                    note = min_note;
-                }
-            }
-            printf("decreased octave to:%d\n", octave);
-            return;
-            break;
         case SDLK_z:
             new_note = 12;
             break;
@@ -553,404 +632,72 @@ static void handle_note_keys(SDL_Keysym* keysym) {
     }
     
     if(new_note > -1) {
+        
         note = new_note;
         note += (octave * 12);
-        char *tone_char = note_to_char(note);
-        printf("note:%d %s pitch:%fHz\n", note, tone_char, get_pitch(note));
+        if(note > max_note) {
+            note = max_note;
+        }
+        if(note < min_note) {
+            note = min_note;
+        }
+        
+        // if note is the same as last note, it's still held on sustain. Only set a new note if it differs from
+        // the last one.
+        
+        if(note != last_note) {
+            print_note(note);
+            last_note = note;
+            
+            // reset envelope cursor
+            envelope_cursor = 0;
+        }
     }
 }
 
-static char *note_to_char(int note) {
+static void print_note(int note) {
     
-    char *return_str = NULL;
-    switch (note) {
-            
-        // octave 0
-        case 12:
-            return_str = "C-0";
+    int note_without_octave = note%12;
+    int note_octave = (note/12)-1;
+    char *note_chars = NULL;
+    switch (note_without_octave) {
+        case 0:
+            note_chars = "C-";
             break;
-        case 13:
-            return_str = "C#0";
+        case 1:
+            note_chars = "C#";
             break;
-        case 14:
-            return_str = "D-0";
+        case 2:
+            note_chars = "D-";
             break;
-        case 15:
-            return_str = "D#0";
+        case 3:
+            note_chars = "D#";
             break;
-        case 16:
-            return_str = "E-0";
+        case 4:
+            note_chars = "E-";
             break;
-        case 17:
-            return_str = "F-0";
+        case 5:
+            note_chars = "F-";
             break;
-        case 18:
-            return_str = "F#0";
+        case 6:
+            note_chars = "F#";
             break;
-        case 19:
-            return_str = "G-0";
+        case 7:
+            note_chars = "G-";
             break;
-        case 20:
-            return_str = "G#0";
+        case 8:
+            note_chars = "G#";
             break;
-        case 21:
-            return_str = "A-0";
+        case 9:
+            note_chars = "A-";
             break;
-        case 22:
-            return_str = "A#0";
+        case 10:
+            note_chars = "A#";
             break;
-        case 23:
-            return_str = "B-0";
-            break;
-            
-        // octave 1
-        case 24:
-            return_str = "C-1";
-            break;
-        case 25:
-            return_str = "C#1";
-            break;
-        case 26:
-            return_str = "D-1";
-            break;
-        case 27:
-            return_str = "D#1";
-            break;
-        case 28:
-            return_str = "E-1";
-            break;
-        case 29:
-            return_str = "F-1";
-            break;
-        case 30:
-            return_str = "F#1";
-            break;
-        case 31:
-            return_str = "G-1";
-            break;
-        case 32:
-            return_str = "G#1";
-            break;
-        case 33:
-            return_str = "A-1";
-            break;
-        case 34:
-            return_str = "A#1";
-            break;
-        case 35:
-            return_str = "B-1";
-            break;
-            
-        // octave 2
-        case 36:
-            return_str = "C-2";
-            break;
-        case 37:
-            return_str = "C#2";
-            break;
-        case 38:
-            return_str = "D-2";
-            break;
-        case 39:
-            return_str = "D#2";
-            break;
-        case 40:
-            return_str = "E-2";
-            break;
-        case 41:
-            return_str = "F-2";
-            break;
-        case 42:
-            return_str = "F#2";
-            break;
-        case 43:
-            return_str = "G-2";
-            break;
-        case 44:
-            return_str = "G#2";
-            break;
-        case 45:
-            return_str = "A-2";
-            break;
-        case 46:
-            return_str = "A#2";
-            break;
-        case 47:
-            return_str = "B-2";
-            break;
-            
-        // octave 3
-        case 48:
-            return_str = "C-3";
-            break;
-        case 49:
-            return_str = "C#3";
-            break;
-        case 50:
-            return_str = "D-3";
-            break;
-        case 51:
-            return_str = "D#3";
-            break;
-        case 52:
-            return_str = "E-3";
-            break;
-        case 53:
-            return_str = "F-3";
-            break;
-        case 54:
-            return_str = "F#3";
-            break;
-        case 55:
-            return_str = "G-3";
-            break;
-        case 56:
-            return_str = "G#3";
-            break;
-        case 57:
-            return_str = "A-3";
-            break;
-        case 58:
-            return_str = "A#3";
-            break;
-        case 59:
-            return_str = "B-3";
-            break;
-            
-        // octave 4
-        case 60:
-            return_str = "C-4";
-            break;
-        case 61:
-            return_str = "C#4";
-            break;
-        case 62:
-            return_str = "D-4";
-            break;
-        case 63:
-            return_str = "D#4";
-            break;
-        case 64:
-            return_str = "E-4";
-            break;
-        case 65:
-            return_str = "F-4";
-            break;
-        case 66:
-            return_str = "F#4";
-            break;
-        case 67:
-            return_str = "G-4";
-            break;
-        case 68:
-            return_str = "G#4";
-            break;
-        case 69:
-            return_str = "A-4";
-            break;
-        case 70:
-            return_str = "A#4";
-            break;
-        case 71:
-            return_str = "B-4";
-            break;
-            
-        // octave 5
-        case 72:
-            return_str = "C-5";
-            break;
-        case 73:
-            return_str = "C#5";
-            break;
-        case 74:
-            return_str = "D-5";
-            break;
-        case 75:
-            return_str = "D#5";
-            break;
-        case 76:
-            return_str = "E-5";
-            break;
-        case 77:
-            return_str = "F-5";
-            break;
-        case 78:
-            return_str = "F#5";
-            break;
-        case 79:
-            return_str = "G-5";
-            break;
-        case 80:
-            return_str = "G#5";
-            break;
-        case 81:
-            return_str = "A-5";
-            break;
-        case 82:
-            return_str = "A#5";
-            break;
-        case 83:
-            return_str = "B-5";
-            break;
-            
-            
-        // octave 6
-        case 84:
-            return_str = "C-6";
-            break;
-        case 85:
-            return_str = "C#6";
-            break;
-        case 86:
-            return_str = "D-6";
-            break;
-        case 87:
-            return_str = "D#6";
-            break;
-        case 88:
-            return_str = "E-6";
-            break;
-        case 89:
-            return_str = "F-6";
-            break;
-        case 90:
-            return_str = "F#6";
-            break;
-        case 91:
-            return_str = "G-6";
-            break;
-        case 92:
-            return_str = "G#6";
-            break;
-        case 93:
-            return_str = "A-6";
-            break;
-        case 94:
-            return_str = "A#6";
-            break;
-        case 95:
-            return_str = "B-6";
-            break;
-            
-        // octave 7
-        case 96:
-            return_str = "C-7";
-            break;
-        case 97:
-            return_str = "C#7";
-            break;
-        case 98:
-            return_str = "D-7";
-            break;
-        case 99:
-            return_str = "D#7";
-            break;
-        case 100:
-            return_str = "E-7";
-            break;
-        case 101:
-            return_str = "F-7";
-            break;
-        case 102:
-            return_str = "F#7";
-            break;
-        case 103:
-            return_str = "G-7";
-            break;
-        case 104:
-            return_str = "G#7";
-            break;
-        case 105:
-            return_str = "A-7";
-            break;
-        case 106:
-            return_str = "A#7";
-            break;
-        case 107:
-            return_str = "B-7";
-            break;
-            
-            
-        // octave 8
-        case 108:
-            return_str = "C-8";
-            break;
-        case 109:
-            return_str = "C#8";
-            break;
-        case 110:
-            return_str = "D-8";
-            break;
-        case 111:
-            return_str = "D#8";
-            break;
-        case 112:
-            return_str = "E-8";
-            break;
-        case 113:
-            return_str = "F-8";
-            break;
-        case 114:
-            return_str = "F#8";
-            break;
-        case 115:
-            return_str = "G-8";
-            break;
-        case 116:
-            return_str = "G#8";
-            break;
-        case 117:
-            return_str = "A-8";
-            break;
-        case 118:
-            return_str = "A#8";
-            break;
-        case 119:
-            return_str = "B-8";
-            break;
-            
-        // octave 9
-        case 120:
-            return_str = "C-9";
-            break;
-        case 121:
-            return_str = "C#9";
-            break;
-        case 122:
-            return_str = "D-9";
-            break;
-        case 123:
-            return_str = "D#9";
-            break;
-        case 124:
-            return_str = "E-9";
-            break;
-        case 125:
-            return_str = "F-9";
-            break;
-        case 126:
-            return_str = "F#9";
-            break;
-        case 127:
-            return_str = "G-9";
-            break;
-        case 128:
-            return_str = "G#9";
-            break;
-        case 129:
-            return_str = "A-9";
-            break;
-        case 130:
-            return_str = "A#9";
-            break;
-        case 131:
-            return_str = "B-9";
-            break;
-        default:
-            return_str = "err";
+        case 11:
+            note_chars = "B-";
             break;
     }
-    
-    return return_str;
+    printf("note: %s%d pitch: %fHz\n", note_chars, note_octave, get_pitch(note));
 }
 

@@ -8,7 +8,7 @@
 .DS_Store
 *.swp
 *~.nib
-
+bin/
 # mingw
 *.o
 
