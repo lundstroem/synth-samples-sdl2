@@ -44,10 +44,12 @@
  3. Use an amplitude envelope with attack, decay, sustain and release (ADSR). Also smooth
     out the amp differences to avoid pops.
  
- dialect: C99
+ dialect: C89
  dependencies: SDL2
  created by Harry Lundstrom on 2/11/16.
- these samples will be updated continually, check the repo for latest versions.
+ these samples will be updated continuously, check the repo for latest versions.
+ Uncomment the main function of one of the synth_samples_sdl2 files to run.
+ 
 */
 
 #include <stdio.h>
@@ -57,13 +59,15 @@
 #include <math.h>
 #include <SDL2/SDL.h>
 
-// general
-static bool quit = false;
-static bool debuglog = false;
+/* general */
+static int quit = 0;
+static int debuglog = 0;
 static int alloc_count = 0;
 
-// SDL
-static Uint16 buffer_size = 4096; // must be a power of two, decrease to allow for a lower latency, increase to reduce risk of underrun.
+/* SDL */
+
+/* must be a power of two, decrease to allow for a lower latency, increase to reduce risk of underrun */
+static Uint16 buffer_size = 4096;
 static SDL_AudioDeviceID audio_device;
 static SDL_AudioSpec audio_spec;
 static SDL_Event event;
@@ -72,24 +76,24 @@ static SDL_Renderer *renderer = NULL;
 static SDL_GLContext context;
 static int sample_rate = 44100;
 static int table_length = 1024;
-static bool key_pressed = false;
+static int key_pressed = 0;
 static int last_note = 0;
 
-// voice
+/* voice */
 static const double pi = 3.14159265358979323846;
 static const double chromatic_ratio = 1.059463094359295264562;
 static double phase_double = 0;
 static int phase_int = 0;
 static int16_t *sine_wave_table;
-static int note = -1; // integer representing halfnotes.
+static int note = -1; /* integer representing halfnotes */
 static int octave = 2;
 static int max_note = 131;
 static int min_note = 12;
 
-// functions
+/* functions */
 static void run(void);
-static void *alloc_memory(size_t size, char *name); // malloc wrapper
-static void *free_memory(void *ptr); // malloc wrapper
+static void *alloc_memory(size_t size, char *name); /* malloc wrapper */
+static void *free_memory(void *ptr); /* malloc wrapper */
 static void build_sine_table(int16_t *data, int wave_length);
 static double get_pitch(double note);
 static void write_samples(int16_t *s_byteStream, long begin, long end, long length);
@@ -107,27 +111,29 @@ static void main_loop(void);
 static void handle_note_keys(SDL_Keysym* keysym);
 static void print_note(int note);
 
-// amplitude envelope
+/* amplitude envelope */
 static double update_envelope(void);
 static double get_envelope_amp_by_node(int base_node, double cursor);
 static double envelope_cursor = 0;
-static double envelope_speed_scale = 1; // set envelope speed 1-8
-static double envelope_data[4] = {1.0, 0.5, 0.5, 0.0}; // ADSR amp range 0.0-1.0
-static double envelope_increment_base = 0; // this will be set in init_data based on current samplingrate.
+static double envelope_speed_scale = 1; /* set envelope speed 1-8 */
+static double envelope_data[4] = {1.0, 0.5, 0.5, 0.0}; /* ADSR amp range 0.0-1.0 */
+static double envelope_increment_base = 0; /* this will be set in init_data based on current samplingrate */
 
-// amplitude smoothing
+/* amplitude smoothing */
 static double current_amp = 0;
 static double target_amp = 0;
 static double smoothing_amp_speed = 0.01;
 static double smoothing_enabled = true;
 
 static Sint32 last_key = 0;
-        
+
+/*
 int main(int argc, char* argv[]) {
     
     run();
     return 0;
 }
+*/
 
 static void run(void) {
     
@@ -189,10 +195,10 @@ static void build_sine_table(int16_t *data, int wave_length) {
         Different notes will be created by stepping through
         the table at different intervals (phase).
     */
-    
+    int i;
     double phase_increment = (2.0f * pi) / (double)wave_length;
     double current_phase = 0;
-    for(int i = 0; i < wave_length; i++) {
+    for(i = 0; i < wave_length; i++) {
         int sample = (int)(sin(current_phase) * INT16_MAX);
         data[i] = (int16_t)sample;
         current_phase += phase_increment;
@@ -211,7 +217,7 @@ static double get_pitch(double note) {
 }
 
 static void audio_callback(void *unused, Uint8 *byte_stream, int byte_stream_length) {
-    
+
     /*
         This function is called whenever the audio buffer needs to be filled to allow
         for a continuous stream of audio.
@@ -219,42 +225,60 @@ static void audio_callback(void *unused, Uint8 *byte_stream, int byte_stream_len
         The audio buffer is interleaved, meaning that both left and right channels exist in the same
         buffer.
     */
-    
-    // zero the buffer
+
+    Sint16 *s_byte_stream;
+    int remain;
+    int chunk_size = 64;
+    int counter = 0;
+    int begin = 0;
+    int end = chunk_size;
+
+    /* zero the buffer */
     memset(byte_stream, 0, byte_stream_length);
-    
+
     if(quit) {
         return;
     }
-    
-    // cast buffer as 16bit signed int.
-    Sint16 *s_byte_stream = (Sint16*)byte_stream;
-    
-    // buffer is interleaved, so get the length of 1 channel.
-    int remain = byte_stream_length / 2;
-    
-    // split the rendering up in chunks to make it buffersize agnostic.
-    long chunk_size = 64;
-    int iterations = remain/chunk_size;
-    for(long i = 0; i < iterations; i++) {
-        long begin = i*chunk_size;
-        long end = (i*chunk_size) + chunk_size;
+
+    /* cast buffer as 16bit signed int */
+    s_byte_stream = (Sint16*)byte_stream;
+
+    /* buffer is interleaved, so get the length of 1 channel */
+    remain = byte_stream_length / 2;
+
+    /* split the rendering up in chunks to make it buffersize agnostic */
+    end = chunk_size;
+    while (counter < remain) {
+        if (counter > 0) {
+            begin += chunk_size;
+            end += chunk_size;
+            if (end >= remain) {
+                /* If stream length is not divisible by chunk length, write the remaining part here
+                 so we don't miss it */
+                end = remain;
+                chunk_size = (end-begin);
+                write_samples(s_byte_stream, begin, end, chunk_size);
+                break;
+            }
+        }
         write_samples(s_byte_stream, begin, end, chunk_size);
+        counter += chunk_size;
     }
 }
 
 static void write_samples(int16_t *s_byteStream, long begin, long end, long length) {
-    
+    int i;
+
     if(note > 0) {
         double d_sample_rate = sample_rate;
         double d_table_length = table_length;
         double d_note = note;
         
-        // get correct phase increment for note depending on sample rate and table length.
+        /* get correct phase increment for note depending on sample rate and table length */
         double phase_increment = (get_pitch(d_note) / d_sample_rate) * d_table_length;
         
-        // loop through the buffer and write samples.
-        for (int i = 0; i < length; i+=2) {
+        /* loop through the buffer and write samples */
+        for (i = 0; i < length; i+=2) {
             phase_double += phase_increment;
             phase_int = (int)phase_double;
             if(phase_double >= table_length) {
@@ -268,7 +292,7 @@ static void write_samples(int16_t *s_byteStream, long begin, long end, long leng
                     int16_t sample = sine_wave_table[phase_int];
                     target_amp = update_envelope();
                     if(smoothing_enabled) {
-                        // move current amp towards target amp for a smoother transition.
+                        /* move current amp towards target amp for a smoother transition */
                         if(current_amp < target_amp) {
                             current_amp += smoothing_amp_speed;
                             if(current_amp > target_amp) {
@@ -283,9 +307,9 @@ static void write_samples(int16_t *s_byteStream, long begin, long end, long leng
                     } else {
                         current_amp = target_amp;
                     }
-                    sample *= current_amp; // scale volume.
-                    s_byteStream[i+begin] = sample; // left channel
-                    s_byteStream[i+begin+1] = sample; // right channel
+                    sample *= current_amp; /* scale volume */
+                    s_byteStream[i+begin] = sample; /* left channel */
+                    s_byteStream[i+begin+1] = sample; /* right channel */
                 }
             }
         }
@@ -299,34 +323,35 @@ static void cleanup_data(void) {
 }
 
 static void setup_sdl(void) {
-    
-    SDL_Init(SDL_INIT_VIDEO);
-    
-    // Get current display mode of all displays.
+
+    int i;
     SDL_DisplayMode current;
-    for(int i = 0; i < SDL_GetNumVideoDisplays(); ++i) {
+    SDL_Init(SDL_INIT_VIDEO);
+
+    /* Get current display mode of all displays */
+    for(i = 0; i < SDL_GetNumVideoDisplays(); ++i) {
         int should_be_zero = SDL_GetCurrentDisplayMode(i, &current);
         if(should_be_zero != 0) {
-            // In case of error...
+            /* In case of error... */
             if(debuglog) { SDL_Log("Could not get display mode for video display #%d: %s", i, SDL_GetError()); }
         } else {
-            // On success, print the current display mode.
+            /* On success, print the current display mode */
             if(debuglog) { SDL_Log("Display #%d: current display mode is %dx%dpx @ %dhz. \n", i, current.w, current.h, current.refresh_rate); }
         }
     }
-    
-    window = SDL_CreateWindow("synth_samples_sdl2_3", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_OPENGL);
-    
+
+    window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_OPENGL);
+
     if(window != NULL) {
         context = SDL_GL_CreateContext(window);
         if(context == NULL) {
             printf("\nFailed to create context: %s\n", SDL_GetError());
         }
-        
+
         renderer = SDL_CreateRenderer(window, -1, 0);
         if (renderer != NULL) {
             SDL_GL_SetSwapInterval(1);
-            SDL_SetWindowTitle(window, "SDL2 synth sample 2");
+            SDL_SetWindowTitle(window, "SDL2 synth sample 3");
         } else {
             if(debuglog) {
                 printf("Failed to create renderer: %s", SDL_GetError());
@@ -341,15 +366,16 @@ static void setup_sdl(void) {
 
 static int setup_sdl_audio(void) {
     
-    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
     SDL_AudioSpec want;
+    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
+
     SDL_zero(want);
     SDL_zero(audio_spec);
     
     want.freq = sample_rate;
-    // request 16bit signed little-endian sample format.
+    /* request 16bit signed little-endian sample format */
     want.format = AUDIO_S16LSB;
-    // request 2 channels (stereo)
+    /* request 2 channels (stereo) */
     want.channels = 2;
     want.samples = buffer_size;
     
@@ -390,7 +416,7 @@ static int setup_sdl_audio(void) {
     }
     
     buffer_size = audio_spec.samples;
-    SDL_PauseAudioDevice(audio_device, 0); // unpause audio.
+    SDL_PauseAudioDevice(audio_device, 0); /* unpause audio */
     return 0;
 }
 
@@ -419,11 +445,11 @@ static void destroy_sdl(void) {
 
 static void init_data(void) {
     
-    // allocate memory for sine table and build it.
+    /* allocate memory for sine table and build it */
     sine_wave_table = alloc_memory(sizeof(int16_t)*table_length, "PCM table");
     build_sine_table(sine_wave_table, table_length);
     
-    // set envelope increment size based on samplerate.
+    /* set envelope increment size based on samplerate */
     envelope_increment_base = 1 / (double)(sample_rate/2);
 }
 
@@ -435,14 +461,14 @@ static void t_log(char *message) {
 }
 
 static void handle_key_up(SDL_Keysym* keysym) {
-    
+
     switch(keysym->sym) {
         case SDLK_PLUS:
             break;
         case SDLK_MINUS:
             break;
         default:
-            // if the last notekey pressed is released
+            /* if the last notekey pressed is released */
             if(last_key == keysym->sym) {
                 key_pressed = false;
                 last_note = -1;
@@ -452,7 +478,7 @@ static void handle_key_up(SDL_Keysym* keysym) {
 }
 
 static void handle_key_down(SDL_Keysym* keysym) {
-   
+
     switch(keysym->sym) {
         case SDLK_PLUS:
             if(octave < 5) {
@@ -476,8 +502,8 @@ static void handle_key_down(SDL_Keysym* keysym) {
 
 static double get_envelope_amp_by_node(int base_node, double cursor) {
     
-    // interpolate amp value for the current cursor position.
-    
+    /* interpolate amp value for the current cursor position */
+
     double n1 = base_node;
     double n2 = base_node + 1;
     double relative_cursor_pos = (cursor - n1) / (n2 - n1);
@@ -488,11 +514,11 @@ static double get_envelope_amp_by_node(int base_node, double cursor) {
 
 static double update_envelope(void) {
     
-    // advance envelope cursor and return the target amplitude value.
-    
+    /* advance envelope cursor and return the target amplitude value */
+
     double amp = 0;
     if(key_pressed && envelope_cursor < 3 && envelope_cursor > 2) {
-        // if a note key is longpressed and cursor is in range, stay for sustain.
+        /* if a note key is longpressed and cursor is in range, stay for sustain */
         amp = get_envelope_amp_by_node(2, envelope_cursor);
     } else {
         double speed_multiplier = pow(2, envelope_speed_scale);
@@ -513,19 +539,19 @@ static double update_envelope(void) {
 
 static void main_loop(void) {
     
-    // check for keyboard events etc.
+    /* check for keyboard events etc */
     check_sdl_events(event);
     
-    // update screen.
+    /* update screen */
     SDL_RenderClear(renderer);
     SDL_RenderPresent(renderer);
     SDL_Delay(16);
 }
 
 static void handle_note_keys(SDL_Keysym* keysym) {
-    
-    // change note depending on which key is pressed.
-    
+
+    /* change note depending on which key is pressed */
+
     int new_note = note;
     switch(keysym->sym) {
         case SDLK_z:
@@ -574,7 +600,7 @@ static void handle_note_keys(SDL_Keysym* keysym) {
             new_note = 26;
             break;
             
-            //upper keyboard
+            /* upper keyboard */
         case SDLK_q:
             new_note = 24;
             break;
@@ -632,7 +658,7 @@ static void handle_note_keys(SDL_Keysym* keysym) {
     }
     
     if(new_note > -1) {
-        
+
         note = new_note;
         note += (octave * 12);
         if(note > max_note) {
@@ -641,22 +667,21 @@ static void handle_note_keys(SDL_Keysym* keysym) {
         if(note < min_note) {
             note = min_note;
         }
-        
-        // if note is the same as last note, it's still held on sustain. Only set a new note if it differs from
-        // the last one.
-        
+
+        /* if note is the same as last note, it's still held on sustain. Only set a new note if it differs from the last one */
+
         if(note != last_note) {
             print_note(note);
             last_note = note;
-            
-            // reset envelope cursor
+
+            /* reset envelope cursor */
             envelope_cursor = 0;
         }
     }
 }
 
 static void print_note(int note) {
-    
+
     int note_without_octave = note%12;
     int note_octave = (note/12)-1;
     char *note_chars = NULL;

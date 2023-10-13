@@ -1,0 +1,289 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0399B2F317F35C1D005ACCBE /* InfoPlist.strings */; };
+		0399B30817F35D84005ACCBE /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; };
+		03FD05B917F3626700E1F97F /* SDL2.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		CE326EEB2AD92D1000B367BC /* synth_samples_sdl2_1.c in Sources */ = {isa = PBXBuildFile; fileRef = CE326EEA2AD92D1000B367BC /* synth_samples_sdl2_1.c */; };
+		CE326EEE2AD92DDA00B367BC /* synth_samples_sdl2_2.c in Sources */ = {isa = PBXBuildFile; fileRef = CE326EEC2AD92DDA00B367BC /* synth_samples_sdl2_2.c */; };
+		CE326EEF2AD92DDA00B367BC /* synth_samples_sdl2_3.c in Sources */ = {isa = PBXBuildFile; fileRef = CE326EED2AD92DDA00B367BC /* synth_samples_sdl2_3.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		03FD05B817F361CA00E1F97F /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				03FD05B917F3626700E1F97F /* SDL2.framework in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		0399B2E717F35C1D005ACCBE /* synth-samples-sdl2.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "synth-samples-sdl2.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0399B2F217F35C1D005ACCBE /* synth-samples-sdl2-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "synth-samples-sdl2-Info.plist"; sourceTree = "<group>"; };
+		0399B2F417F35C1D005ACCBE /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		0399B30717F35D84005ACCBE /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ../../../../../Library/Frameworks/SDL2.framework; sourceTree = "<group>"; };
+		CE326EEA2AD92D1000B367BC /* synth_samples_sdl2_1.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = synth_samples_sdl2_1.c; path = src/synth_samples_sdl2_1.c; sourceTree = SOURCE_ROOT; };
+		CE326EEC2AD92DDA00B367BC /* synth_samples_sdl2_2.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = synth_samples_sdl2_2.c; path = src/synth_samples_sdl2_2.c; sourceTree = SOURCE_ROOT; };
+		CE326EED2AD92DDA00B367BC /* synth_samples_sdl2_3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = synth_samples_sdl2_3.c; path = src/synth_samples_sdl2_3.c; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		0399B2E417F35C1D005ACCBE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0399B30817F35D84005ACCBE /* SDL2.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0399B2DE17F35C1D005ACCBE = {
+			isa = PBXGroup;
+			children = (
+				0399B30717F35D84005ACCBE /* SDL2.framework */,
+				0399B2F017F35C1D005ACCBE /* SDL2_template */,
+				0399B2E817F35C1D005ACCBE /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		0399B2E817F35C1D005ACCBE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				0399B2E717F35C1D005ACCBE /* synth-samples-sdl2.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		0399B2F017F35C1D005ACCBE /* SDL2_template */ = {
+			isa = PBXGroup;
+			children = (
+				CE326EEA2AD92D1000B367BC /* synth_samples_sdl2_1.c */,
+				CE326EEC2AD92DDA00B367BC /* synth_samples_sdl2_2.c */,
+				CE326EED2AD92DDA00B367BC /* synth_samples_sdl2_3.c */,
+				0399B2F117F35C1D005ACCBE /* Supporting Files */,
+			);
+			path = SDL2_template;
+			sourceTree = "<group>";
+		};
+		0399B2F117F35C1D005ACCBE /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				0399B2F217F35C1D005ACCBE /* synth-samples-sdl2-Info.plist */,
+				0399B2F317F35C1D005ACCBE /* InfoPlist.strings */,
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0399B2E617F35C1D005ACCBE /* synth-samples-sdl2 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0399B30417F35C1D005ACCBE /* Build configuration list for PBXNativeTarget "synth-samples-sdl2" */;
+			buildPhases = (
+				0399B2E317F35C1D005ACCBE /* Sources */,
+				0399B2E417F35C1D005ACCBE /* Frameworks */,
+				0399B2E517F35C1D005ACCBE /* Resources */,
+				03FD05B817F361CA00E1F97F /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "synth-samples-sdl2";
+			productName = SDL2_template;
+			productReference = 0399B2E717F35C1D005ACCBE /* synth-samples-sdl2.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		0399B2DF17F35C1D005ACCBE /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0610;
+				ORGANIZATIONNAME = D;
+			};
+			buildConfigurationList = 0399B2E217F35C1D005ACCBE /* Build configuration list for PBXProject "synth-samples-sdl2" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				English,
+				en,
+			);
+			mainGroup = 0399B2DE17F35C1D005ACCBE;
+			productRefGroup = 0399B2E817F35C1D005ACCBE /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				0399B2E617F35C1D005ACCBE /* synth-samples-sdl2 */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0399B2E517F35C1D005ACCBE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0399B2E317F35C1D005ACCBE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				CE326EEE2AD92DDA00B367BC /* synth_samples_sdl2_2.c in Sources */,
+				CE326EEF2AD92DDA00B367BC /* synth_samples_sdl2_3.c in Sources */,
+				CE326EEB2AD92D1000B367BC /* synth_samples_sdl2_1.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		0399B2F317F35C1D005ACCBE /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				0399B2F417F35C1D005ACCBE /* en */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		0399B30217F35C1D005ACCBE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = c89;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_CFLAGS = "-pedantic-errors";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		0399B30317F35C1D005ACCBE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = c89;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				OTHER_CFLAGS = "-pedantic-errors";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		0399B30517F35C1D005ACCBE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
+				GCC_C_LANGUAGE_STANDARD = c89;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "";
+				INFOPLIST_FILE = "SDL2_template/synth-samples-sdl2-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.harrylundstrom.software-raster-sdl2";
+				PRODUCT_NAME = "synth-samples-sdl2";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Debug;
+		};
+		0399B30617F35C1D005ACCBE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				COMBINE_HIDPI_IMAGES = YES;
+				FRAMEWORK_SEARCH_PATHS = /Library/Frameworks;
+				GCC_C_LANGUAGE_STANDARD = c89;
+				GCC_PRECOMPILE_PREFIX_HEADER = YES;
+				GCC_PREFIX_HEADER = "";
+				INFOPLIST_FILE = "SDL2_template/synth-samples-sdl2-Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.harrylundstrom.software-raster-sdl2";
+				PRODUCT_NAME = "synth-samples-sdl2";
+				WRAPPER_EXTENSION = app;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		0399B2E217F35C1D005ACCBE /* Build configuration list for PBXProject "synth-samples-sdl2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0399B30217F35C1D005ACCBE /* Debug */,
+				0399B30317F35C1D005ACCBE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		0399B30417F35C1D005ACCBE /* Build configuration list for PBXNativeTarget "synth-samples-sdl2" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0399B30517F35C1D005ACCBE /* Debug */,
+				0399B30617F35C1D005ACCBE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 0399B2DF17F35C1D005ACCBE /* Project object */;
+}
